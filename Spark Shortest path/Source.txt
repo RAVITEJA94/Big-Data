@@ -1,0 +1,53 @@
+package edu.uta.cse6331
+
+import org.apache.spark.SparkContext
+import org.apache.spark.SparkConf
+import org.apache.spark.SparkConf
+import scala.collection.mutable.ArrayBuffer
+
+
+object Source {
+  def main(args: Array[ String ]) {
+    val conf = new SparkConf().setAppName("shortestpath")
+    val sc = new SparkContext(conf)
+    var Max= 999999
+    var input1 = sc.textFile(args(0)).map(line => {val s= line.split(",")
+                                 (s(0).toLong,s(1).toLong,s(2).toLong)})
+    var source = sc.textFile(args(0)).map(line => {val s= line.split(",")
+                                 (s(0).toLong,s(1).toLong,s(2).toLong,Max)})
+    
+    var group = input1.groupBy(_._3)
+
+   //initializing the distance from node 0 to itself to 0 and all other to maxvalue
+    var med= group.map(group=>
+      if(group._1==0)
+      {
+        (group._1,0)
+      }
+      else
+      {
+        (group._1,Max)
+      }
+    
+    )
+    //starting the loop
+    var i:Int=0;
+    while(i<4)
+    {
+        //grouping the i,j and updating the distance
+        source = source.map(source => (source._3, source)).join(med.map(m => (m._1, m)))
+        .map { case (last, (source, m)) => (source._1, source._2, source._3, m._2) }
+      
+        med = source.map(source => (source._1, source)).join(med.map(m => (m._1,m)))
+              .map { case(last, (source,m)) => (source._3, Math.min(m._2 + source._2.toInt, source._4))}
+              .reduceByKey(_ min _)
+              
+    i=i+1;
+    } 
+    
+    med = med.filter(n => (n._2!= Max))
+    med = med.sortBy(_._1)
+    med.collect.foreach(println)
+    sc.stop() 
+  }
+}

@@ -1,0 +1,8 @@
+A = LOAD '$M' USING PigStorage(',') AS (i:int, j:int, mval:int);
+B = LOAD '$N' USING PigStorage(',') AS (j:int, k:int, nval:int);
+C = JOIN A BY j, B BY j;
+D = FOREACH C GENERATE A::i AS I, B::k AS K, (A::mval)*(B::nval) AS final;
+E = GROUP D BY (I,K);
+O = FOREACH E GENERATE group.$0 as iIndex ,group.$1 as kIndex ,SUM(D.final) AS result;
+S = ORDER O BY iIndex , kIndex ;
+STORE S INTO '$O';

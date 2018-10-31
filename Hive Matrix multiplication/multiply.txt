@@ -1,0 +1,17 @@
+drop table matrixM;
+drop table matrixN;
+drop table jointable;
+drop table sumtable;
+
+create table matrixM(mrow int, mcolumn int, mvalue double)row format delimited fields terminated by ',' stored as textfile;  
+create table matrixN(nrow int, ncolumn int, nvalue double)row format delimited fields terminated by ',' stored as textfile;
+
+load data local inpath '${hiveconf:M}' overwrite into table matrixM;
+load data local inpath '${hiveconf:N}' overwrite into table matrixN;
+
+create table jointable as select m.mrow as indexi, n.ncolumn as indexk, m.mvalue*n.nvalue as value from matrixM m, matrixN n where m.mcolumn=n.nrow order by indexi;
+
+create table sumtable as select indexi, indexk, SUM(value) as average from jointable group by indexi,indexk;
+
+select count(indexi),avg(average) from sumtable;
+
